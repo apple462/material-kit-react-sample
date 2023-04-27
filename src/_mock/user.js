@@ -24,4 +24,29 @@ const users = [...Array(24)].map((_, index) => ({
   ]),
 }));
 
+export const roles = [
+  {
+    id: faker.datatype.uuid(),
+    name: 'Full Stack Developer',
+    remark: "Has access to Jira and other development tools",
+  },
+  {
+    id: faker.datatype.uuid(),
+    name: 'Frontend Developer',
+    remark: "Has access to Figma, Jira and other development tools",
+  }, {
+    id: faker.datatype.uuid(),
+    name: 'Backend Developer',
+    remark: "Doesn't have access to sensitive information",
+  }, {
+    id: faker.datatype.uuid(),
+    name: 'Product Manager',
+    remark: "Has access to sensitive information",
+  }, {
+    id: faker.datatype.uuid(),
+    name: 'UI/UX Designer',
+    remark: "Has access to Figma and other design tools",
+  },
+];
+
 export default users;

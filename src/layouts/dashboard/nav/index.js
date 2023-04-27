@@ -2,16 +2,16 @@ import PropTypes from 'prop-types';
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 // @mui
-import { styled, alpha } from '@mui/material/styles';
-import { Box, Link, Button, Drawer, Typography, Avatar, Stack } from '@mui/material';
+import { Avatar, Box, Button, Drawer, Link, Stack, Typography } from '@mui/material';
+import { alpha, styled } from '@mui/material/styles';
 // mock
 import account from '../../../_mock/account';
 // hooks
 import useResponsive from '../../../hooks/useResponsive';
 // components
 import Logo from '../../../components/logo';
-import Scrollbar from '../../../components/scrollbar';
 import NavSection from '../../../components/nav-section';
+import Scrollbar from '../../../components/scrollbar';
 //
 import navConfig from './config';
 
@@ -89,16 +89,16 @@ export default function Nav({ openNav, onCloseNav }) {
 
           <Box sx={{ textAlign: 'center' }}>
             <Typography gutterBottom variant="h6">
-              Get more?
+              Need more?
             </Typography>
 
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              From only $69
+              Hire us!
             </Typography>
           </Box>
 
-          <Button href="https://material-ui.com/store/items/minimal-dashboard/" target="_blank" variant="contained">
-            Upgrade to Pro
+          <Button href='mailto:laksh.maheshwari10@gmail.com?subject=You are on' variant="contained">
+            Reach out to us
           </Button>
         </Stack>
       </Box>
