@@ -9,10 +9,16 @@ import {
   Card,
   Checkbox,
   Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   MenuItem,
   Paper,
   Popover,
+  Snackbar,
   Stack,
   Table,
   TableBody,
@@ -88,9 +94,13 @@ export default function UserPage() {
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  const handleOpenMenu = (event) => {
+  const [data, setData] = useState(USERLIST);
+
+  const handleOpenMenu = (event, id) => {
     setOpen(event.currentTarget);
+    setSelectedEntry(data.find((user) => user.id === id));
   };
+
 
   const handleCloseMenu = () => {
     setOpen(null);
@@ -104,7 +114,7 @@ export default function UserPage() {
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelecteds = USERLIST.map((n) => n.name);
+      const newSelecteds = data.map((n) => n.name);
       setSelected(newSelecteds);
       return;
     }
@@ -140,17 +150,78 @@ export default function UserPage() {
     setFilterName(event.target.value);
   };
 
-  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - USERLIST.length) : 0;
+  const handleDeleteUser = (listOfId) => {
+    setData((prev) => {
+      return prev?.filter((item) => !listOfId.includes(item?.id))
+    })
+  }
 
-  const filteredUsers = applySortFilter(USERLIST, getComparator(order, orderBy), filterName);
+  const handleDeleteAllUsers = () => {
+    setData([]);
+    setSelected([]);
+    setSnackbar({ state: true, message: "All users deleted" })
+  }
+
+  const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - data.length) : 0;
+
+  const filteredUsers = applySortFilter(data, getComparator(order, orderBy), filterName);
 
   const isNotFound = !filteredUsers.length && !!filterName;
+
+  const [openDialog, setOpenDialog] = useState(false);
+  const [snackbar, setSnackbar] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+
+  const handleDialogClose = (showToast = false) => {
+    setOpenDialog(false);
+    if (showToast === true) {
+      handleDeleteUser([selectedEntry?.id])
+      setSnackbar({ state: true, message: "Members deleted" });
+    }
+  };
+
+  const handleSnackbarClose = () => {
+    setSnackbar({ state: false });
+  };
+
 
   return (
     <>
       <Helmet>
         <title> User | Minimal UI </title>
       </Helmet>
+
+
+      <Dialog
+        open={openDialog}
+        onClose={handleDialogClose}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Confirm user deletion?"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to permanently delete the user "{selectedEntry?.name}"?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => handleDialogClose(false)}>Do not delete</Button>
+          <Button onClick={() => handleDialogClose(true)} autoFocus>
+            Confirm Deletion
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        open={snackbar?.state}
+        onClose={handleSnackbarClose}
+        message={snackbar?.message}
+      />
+
 
       <Container>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
@@ -163,7 +234,7 @@ export default function UserPage() {
         </Stack>
 
         <Card>
-          <UserListToolbar item='users' numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} />
+          <UserListToolbar item='users' numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} onDeleteHandler={handleDeleteAllUsers} />
 
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
@@ -172,7 +243,7 @@ export default function UserPage() {
                   order={order}
                   orderBy={orderBy}
                   headLabel={TABLE_HEAD}
-                  rowCount={USERLIST.length}
+                  rowCount={data.length}
                   numSelected={selected.length}
                   onRequestSort={handleRequestSort}
                   onSelectAllClick={handleSelectAllClick}
@@ -208,7 +279,7 @@ export default function UserPage() {
                         </TableCell>
 
                         <TableCell align="right">
-                          <IconButton size="large" color="inherit" onClick={handleOpenMenu}>
+                          <IconButton size="large" color="inherit" onClick={(event) => handleOpenMenu(event, id)}>
                             <Iconify icon={'eva:more-vertical-fill'} />
                           </IconButton>
                         </TableCell>
@@ -252,7 +323,7 @@ export default function UserPage() {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={USERLIST.length}
+            count={data.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}
@@ -284,7 +355,7 @@ export default function UserPage() {
           Edit
         </MenuItem>
 
-        <MenuItem sx={{ color: 'error.main' }}>
+        <MenuItem sx={{ color: 'error.main' }} onClick={() => setOpenDialog(true)}>
           <Iconify icon={'eva:trash-2-outline'} sx={{ mr: 2 }} />
           Delete
         </MenuItem>

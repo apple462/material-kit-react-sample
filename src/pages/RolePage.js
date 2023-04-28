@@ -75,6 +75,8 @@ function applySortFilter(array, comparator, query) {
 }
 
 export default function RolePage() {
+  const [data, setData] = useState(roles);
+
   const [open, setOpen] = useState(null);
 
   const [page, setPage] = useState(0);
@@ -91,7 +93,7 @@ export default function RolePage() {
 
   const handleOpenMenu = (event, id) => {
     setOpen(event.currentTarget);
-    setSelectedEntry(roles.find((role) => role.id === id));
+    setSelectedEntry(data.find((role) => role.id === id));
   };
 
   const handleCloseMenu = () => {
@@ -106,7 +108,7 @@ export default function RolePage() {
 
   const handleSelectAllClick = (event) => {
     if (event.target.checked) {
-      const newSelecteds = roles.map((n) => n.name);
+      const newSelecteds = data.map((n) => n.name);
       setSelected(newSelecteds);
       return;
     }
@@ -144,20 +146,30 @@ export default function RolePage() {
 
   const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - roles.length) : 0;
 
-  const filteredUsers = applySortFilter(roles, getComparator(order, orderBy), filterName);
+  const filteredUsers = applySortFilter(data, getComparator(order, orderBy), filterName);
 
   const isNotFound = !filteredUsers.length && !!filterName;
   const [openDialog, setOpenDialog] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
 
+
   const handleDialogClickOpen = () => {
     setOpenDialog(true);
   };
 
+  const handleDeleteUser = (id) => {
+    setData((prev) => {
+      return prev?.filter((item) => item?.id !== id)
+    })
+  }
+
   const handleDialogClose = (showToast = false) => {
     setOpenDialog(false);
-    if (showToast) setOpenSnackbar(true);
+    if (showToast === true) {
+      handleDeleteUser(selectedEntry?.id)
+      setOpenSnackbar(true);
+    }
   };
 
   const handleSnackbarClick = () => {
@@ -178,7 +190,7 @@ export default function RolePage() {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
         open={openSnackbar}
         onClose={handleSnackbarClose}
-        message="Member (will be) deleted"
+        message="Role deleted"
       />
 
       <Dialog
@@ -197,12 +209,14 @@ export default function RolePage() {
           </DialogContentText>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDialogClose}>Do not delete</Button>
+          <Button onClick={() => handleDialogClose(false)}>Do not delete</Button>
           <Button onClick={() => handleDialogClose(true)} autoFocus>
             Confirm Deletion
           </Button>
         </DialogActions>
       </Dialog>
+
+
       <Container>
         <Stack direction="row" alignItems="center" justifyContent="space-between" mb={5}>
           <Typography variant="h4" gutterBottom>
@@ -218,7 +232,7 @@ export default function RolePage() {
         </Stack>
 
         <Card>
-          <UserListToolbar item='role' numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} />
+          <UserListToolbar item='role' numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} setOpenDialog={setOpenDialog} />
 
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
@@ -227,7 +241,7 @@ export default function RolePage() {
                   order={order}
                   orderBy={orderBy}
                   headLabel={TABLE_HEAD}
-                  rowCount={roles.length}
+                  rowCount={data.length}
                   numSelected={selected.length}
                   onRequestSort={handleRequestSort}
                   onSelectAllClick={handleSelectAllClick}
@@ -240,7 +254,11 @@ export default function RolePage() {
                     return (
                       <TableRow hover key={id} tabIndex={-1} role="checkbox" selected={selectedUser}>
                         <TableCell padding="checkbox">
-                          <Checkbox checked={selectedUser} onChange={(event) => handleClick(event, name)} />
+                          <Tooltip title="Bulk operations disabled for roles">
+                            <span>
+                              <Checkbox disabled checked={selectedUser} onChange={(event) => handleClick(event, name)} />
+                            </span>
+                          </Tooltip>
                         </TableCell>
 
                         <TableCell component="th" scope="row" >
@@ -296,7 +314,7 @@ export default function RolePage() {
           <TablePagination
             rowsPerPageOptions={[5, 10, 25]}
             component="div"
-            count={roles.length}
+            count={data.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={handleChangePage}

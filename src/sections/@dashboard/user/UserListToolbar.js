@@ -1,8 +1,9 @@
 import PropTypes from 'prop-types';
 // @mui
-import { IconButton, InputAdornment, OutlinedInput, Toolbar, Tooltip, Typography } from '@mui/material';
+import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, IconButton, InputAdornment, OutlinedInput, Toolbar, Tooltip, Typography } from '@mui/material';
 import { alpha, styled } from '@mui/material/styles';
 // component
+import { useState } from 'react';
 import Iconify from '../../../components/iconify';
 
 // ----------------------------------------------------------------------
@@ -37,9 +38,12 @@ UserListToolbar.propTypes = {
   filterName: PropTypes.string,
   onFilterName: PropTypes.func,
   item: PropTypes.string,
+  onDeleteHandler: PropTypes.func,
 };
 
-export default function UserListToolbar({ numSelected, filterName, onFilterName, item }) {
+export default function UserListToolbar({ numSelected, filterName, onFilterName, item, onDeleteHandler }) {
+  const [openDialog, setOpenDialog] = useState(false);
+
   return (
     <StyledRoot
       sx={{
@@ -49,6 +53,34 @@ export default function UserListToolbar({ numSelected, filterName, onFilterName,
         }),
       }}
     >
+
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(true)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Confirm user deletion?"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Are you sure you want to permanently delete all the users?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDialog(false)}>Do not delete</Button>
+          <Button onClick={() => {
+            setOpenDialog(false);
+            onDeleteHandler();
+          }} autoFocus>
+            Confirm Deletion
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+
       {numSelected > 0 ? (
         <Typography component="div" variant="subtitle1">
           {numSelected} selected
@@ -66,9 +98,9 @@ export default function UserListToolbar({ numSelected, filterName, onFilterName,
         />
       )}
 
-      {numSelected > 0 ? (
+      {numSelected > 0 && onDeleteHandler ? (
         <Tooltip title="Delete">
-          <IconButton>
+          <IconButton onClick={() => setOpenDialog(true)}>
             <Iconify icon="eva:trash-2-fill" />
           </IconButton>
         </Tooltip>
