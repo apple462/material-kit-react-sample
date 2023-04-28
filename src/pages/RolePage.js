@@ -1,5 +1,5 @@
 import { filter } from 'lodash';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 // @mui
 import {
@@ -12,6 +12,10 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Drawer,
+  FormControlLabel,
+  FormGroup,
+  FormLabel,
   IconButton,
   MenuItem,
   Paper,
@@ -24,12 +28,16 @@ import {
   TableContainer,
   TablePagination,
   TableRow,
+  TextField,
   Tooltip,
-  Typography
+  Typography,
+  makeStyles,
 } from '@mui/material';
+
 // components
 import Iconify from '../components/iconify';
 import Scrollbar from '../components/scrollbar';
+
 // sections
 import { UserListHead, UserListToolbar } from '../sections/@dashboard/user';
 // mock
@@ -37,10 +45,38 @@ import { roles } from '../_mock/user';
 
 // ----------------------------------------------------------------------
 
+const permissionOptions = [
+  {
+    id: 1,
+    name: 'Permission 1',
+  },
+  {
+    id: 2,
+    name: 'Permission 2',
+  },
+  {
+    id: 3,
+    name: 'Permission 3',
+  },
+  {
+    id: 4,
+    name: 'Permission 4',
+  },
+  {
+    id: 5,
+    name: 'Permission 5',
+  },
+  {
+    id: 6,
+    name: 'Permission 6',
+  }
+];
+
+
 const TABLE_HEAD = [
   { id: 'name', label: 'Role', alignRight: false },
   { id: 'remark', label: 'Remark', alignRight: false },
-  { id: '' },
+  { id: 'Actions', alignRight: true },
 ];
 
 // ----------------------------------------------------------------------
@@ -83,7 +119,7 @@ export default function RolePage() {
 
   const [order, setOrder] = useState('asc');
 
-  const [selected, setSelected] = useState([]);
+  const [visible, setVisible] = useState(false);
 
   const [orderBy, setOrderBy] = useState('name');
 
@@ -91,43 +127,57 @@ export default function RolePage() {
 
   const [rowsPerPage, setRowsPerPage] = useState(5);
 
-  const handleOpenMenu = (event, id) => {
+  const [mode, setMode] = useState();
+
+  const handleOpenMenu = (event, record) => {
     setOpen(event.currentTarget);
-    setSelectedEntry(data.find((role) => role.id === id));
+    setSelectedEntry(record);
   };
 
   const handleCloseMenu = () => {
     setOpen(null);
   };
 
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setSelectedEntry((prevFormData) => ({ ...prevFormData, [name]: value }));
+  };
+
+  const handleCheckboxChange = (id, status) => {
+    setSelectedEntry((prevFormData) => {
+      if (status) {
+        return {
+          ...prevFormData,
+          permission: [
+            ...prevFormData.permission,
+            id
+          ]
+        }
+      }
+      return {
+        ...prevFormData,
+        permission: prevFormData.permission.filter((item) => item !== id)
+      }
+    })
+  };
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setData((prev) => {
+      return prev?.map((item) => {
+        if (item?.id === selectedEntry?.id) {
+          return selectedEntry;
+        }
+        return item;
+      });
+    })
+    setMode(); setSelectedEntry(null)
+  };
+
   const handleRequestSort = (event, property) => {
     const isAsc = orderBy === property && order === 'asc';
     setOrder(isAsc ? 'desc' : 'asc');
     setOrderBy(property);
-  };
-
-  const handleSelectAllClick = (event) => {
-    if (event.target.checked) {
-      const newSelecteds = data.map((n) => n.name);
-      setSelected(newSelecteds);
-      return;
-    }
-    setSelected([]);
-  };
-
-  const handleClick = (event, name) => {
-    const selectedIndex = selected.indexOf(name);
-    let newSelected = [];
-    if (selectedIndex === -1) {
-      newSelected = newSelected.concat(selected, name);
-    } else if (selectedIndex === 0) {
-      newSelected = newSelected.concat(selected.slice(1));
-    } else if (selectedIndex === selected.length - 1) {
-      newSelected = newSelected.concat(selected.slice(0, -1));
-    } else if (selectedIndex > 0) {
-      newSelected = newSelected.concat(selected.slice(0, selectedIndex), selected.slice(selectedIndex + 1));
-    }
-    setSelected(newSelected);
   };
 
   const handleChangePage = (event, newPage) => {
@@ -139,11 +189,6 @@ export default function RolePage() {
     setRowsPerPage(parseInt(event.target.value, 10));
   };
 
-  const handleFilterByName = (event) => {
-    setPage(0);
-    setFilterName(event.target.value);
-  };
-
   const emptyRows = page > 0 ? Math.max(0, (1 + page) * rowsPerPage - roles.length) : 0;
 
   const filteredUsers = applySortFilter(data, getComparator(order, orderBy), filterName);
@@ -152,11 +197,6 @@ export default function RolePage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [openSnackbar, setOpenSnackbar] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
-
-
-  const handleDialogClickOpen = () => {
-    setOpenDialog(true);
-  };
 
   const handleDeleteUser = (id) => {
     setData((prev) => {
@@ -172,13 +212,17 @@ export default function RolePage() {
     }
   };
 
-  const handleSnackbarClick = () => {
-    setOpenSnackbar(true);
-  };
-
   const handleSnackbarClose = () => {
     setOpenSnackbar(false);
   };
+
+  useEffect(() => {
+    if (mode) {
+      setVisible(true)
+    } else {
+      setVisible(false)
+    }
+  }, [mode])
 
   return (
     <>
@@ -222,18 +266,9 @@ export default function RolePage() {
           <Typography variant="h4" gutterBottom>
             Role
           </Typography>
-          <Tooltip title="You do not have access to add new roles" placement='top'>
-            <span>
-              <Button variant="contained" startIcon={<Iconify icon="eva:plus-fill" />} disabled>
-                New Role
-              </Button>
-            </span>
-          </Tooltip>
         </Stack>
 
         <Card>
-          <UserListToolbar item='role' numSelected={selected.length} filterName={filterName} onFilterName={handleFilterByName} setOpenDialog={setOpenDialog} />
-
           <Scrollbar>
             <TableContainer sx={{ minWidth: 800 }}>
               <Table>
@@ -242,25 +277,14 @@ export default function RolePage() {
                   orderBy={orderBy}
                   headLabel={TABLE_HEAD}
                   rowCount={data.length}
-                  numSelected={selected.length}
                   onRequestSort={handleRequestSort}
-                  onSelectAllClick={handleSelectAllClick}
                 />
                 <TableBody>
                   {filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                    const { id, name, remark } = row;
-                    const selectedUser = selected.indexOf(name) !== -1;
+                    const { id, name, remark, permission } = row;
 
                     return (
-                      <TableRow hover key={id} tabIndex={-1} role="checkbox" selected={selectedUser}>
-                        <TableCell padding="checkbox">
-                          <Tooltip title="Bulk operations disabled for roles">
-                            <span>
-                              <Checkbox disabled checked={selectedUser} onChange={(event) => handleClick(event, name)} />
-                            </span>
-                          </Tooltip>
-                        </TableCell>
-
+                      <TableRow hover key={id} tabIndex={-1} role="checkbox">
                         <TableCell component="th" scope="row" >
                           <Typography variant="subtitle2" noWrap>
                             {name}
@@ -270,7 +294,12 @@ export default function RolePage() {
                         <TableCell align="left">{remark}</TableCell>
 
                         <TableCell align="right">
-                          <IconButton size="large" color="inherit" onClick={(event) => handleOpenMenu(event, id)}>
+                          <IconButton size="large" color="inherit" onClick={(event) => handleOpenMenu(event, {
+                            id,
+                            name,
+                            remark,
+                            permission
+                          })}>
                             <Iconify icon={'eva:more-vertical-fill'} />
                           </IconButton>
                         </TableCell>
@@ -341,16 +370,86 @@ export default function RolePage() {
           },
         }}
       >
-        <MenuItem>
+        <MenuItem onClick={() => { setMode('View'); handleCloseMenu() }} >
+          <Iconify icon={'ic:outline-remove-red-eye'} sx={{ mr: 2 }} />
+          View
+        </MenuItem>
+
+        <MenuItem onClick={() => { setMode('Edit'); handleCloseMenu() }} >
           <Iconify icon={'eva:edit-fill'} sx={{ mr: 2 }} />
           Edit
         </MenuItem>
 
-        <MenuItem sx={{ color: 'error.main' }} onClick={() => setOpenDialog(true)}>
+        <MenuItem sx={{ color: 'error.main' }} onClick={() => { setOpenDialog(true); handleCloseMenu() }}>
           <Iconify icon={'eva:trash-2-outline'} sx={{ mr: 2 }} />
           Delete
         </MenuItem>
       </Popover>
+
+      {visible && <Drawer
+        open
+        anchor="right"
+        onClose={() => { setMode(); setSelectedEntry(null) }}
+        title='Role Details'
+      >
+        <form onSubmit={handleSubmit} style={{padding: "16px"}}>
+          <div style={{fontSize: "24px", fontWeight: "500", marginBottom: "24px", paddingBottom: "8px", borderBottom: "1px solid #ccc"}}>{mode} Role</div>
+          <div
+          style={{padding: "16px 0"}}
+          >
+            <TextField
+              label="Role Name"
+              name="name"
+              disabled={mode === 'View'}
+              value={selectedEntry?.name}
+              onChange={handleInputChange}
+            />
+          </div>
+          <div>
+            <TextField
+              label="Description"
+              name="remark"
+              multiline
+              rows={4}
+              disabled={mode === 'View'}
+              value={selectedEntry?.remark}
+              onChange={handleInputChange}
+            />
+          </div>
+          <div>
+            <FormGroup>
+              <FormLabel
+                sx={{
+                  mb: 1,
+                  mt: 3,
+                }}
+              >
+                Permissions
+              </FormLabel>
+              {permissionOptions.map((permission) => (
+                <FormControlLabel
+                  key={permission?.id}
+                  control={
+                    <Checkbox
+                      name={permission?.name}
+                      disabled={mode === 'View'}
+                      checked={selectedEntry?.permission?.includes(permission?.id)}
+                      onChange={(e)=> handleCheckboxChange(permission?.id, e.target.checked)}
+                      value={permission?.id}
+                    />
+                  }
+                  label={permission?.name}
+                />
+              ))}
+            </FormGroup>
+          </div>
+          {mode === 'Edit' && <Button type="submit" color="primary" variant="contained" sx={{
+            mt: 3,
+          }}>
+            Save
+          </Button>}
+        </form>
+      </Drawer>}
     </>
   );
 }
